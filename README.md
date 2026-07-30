@@ -20,8 +20,8 @@
 
 Synthetic fundus image generation for diabetic retinopathy data augmentation.
 
-Fine-tunes Stable Diffusion 2.1 with LoRA adapters on the EyePACS dataset to
-generate grade-conditioned retinal fundus images targeting underrepresented
+Fine-tunes Stable Diffusion 2.1 with LoRA adapters on the APTOS 2019 dataset
+to generate grade-conditioned retinal fundus images targeting underrepresented
 severe DR classes. Validates generation quality through FID and LPIPS, then
 proves downstream utility by measuring classification recall improvement on
 rare grades using an EfficientNet-B0 ablation study across multiple
@@ -34,23 +34,27 @@ the leading cause of preventable blindness in working-age adults. Automated
 screening models consistently underperform on the cases that matter most:
 severe and proliferative DR.
 
-The root cause is data imbalance. In the EyePACS benchmark (88,702 fundus
+The root cause is data imbalance. In the APTOS 2019 benchmark (3,662 fundus
 images across 5 severity grades):
 
-| Grade | Severity | Share of dataset |
-|---|---|---|
-| 0 | No DR | 73.7% |
-| 1 | Mild NPDR | 14.8% |
-| 2 | Moderate NPDR | 6.9% |
-| 3 | Severe NPDR | 2.3% |
-| 4 | Proliferative DR | 2.1% |
+| Grade | Severity | Images | Share |
+|---|---|---|---|
+| 0 | No DR | 1,805 | 49.3% |
+| 1 | Mild NPDR | 370 | 10.1% |
+| 2 | Moderate NPDR | 999 | 27.3% |
+| 3 | Severe NPDR | 193 | 5.3% |
+| 4 | Proliferative DR | 295 | 8.1% |
 
-Grades 3-4 combined make up 4.4% of the data. Models trained on this
-distribution learn to classify "no disease" well but fail where clinical
-intervention is most urgent. Traditional augmentation (rotations, flips, color
-jitter) preserves existing sample morphology but cannot synthesize new
-pathological patterns like neovascularization, hemorrhages, or cotton-wool
-spots that characterize severe DR.
+Grade 3 (Severe) has only 193 images. Models trained on this distribution
+struggle to learn the pathological features that characterize severe cases:
+extensive hemorrhages, venous beading, cotton-wool spots, and
+neovascularization. Traditional augmentation (rotations, flips, color jitter)
+preserves existing sample morphology but cannot synthesize new instances of
+these pathological patterns.
+
+The same imbalance exists at larger scale in EyePACS (88,702 images, Grades
+3-4 at just 4.4%), confirming this is a systemic problem in DR datasets rather
+than a quirk of one benchmark.
 
 ## What makes this different
 
@@ -63,12 +67,11 @@ metrics. MedFuse runs a full downstream validation loop:
   clinical utility (downstream AUROC, per-grade recall)
 - Ratio ablation study (0/25/50/100/200% synthetic) quantifying exactly
   where augmentation helps and where it saturates
-- Cross-dataset generalization check on APTOS 2019
 
 ## Architecture
 
 ```
-EyePACS (88K fundus images, 5 DR grades)
+APTOS 2019 (3,662 fundus images, 5 DR grades)
         |
   Preprocessing
   (circle crop, resize 512x512, quality filter)
@@ -154,8 +157,8 @@ MedFuse/
 
 | Source | What it provides |
 |---|---|
-| [EyePACS (Kaggle)](https://www.kaggle.com/c/diabetic-retinopathy-detection) | 88,702 fundus images across 5 DR grades (primary dataset) |
-| [APTOS 2019 (Kaggle)](https://www.kaggle.com/c/aptos2019-blindness-detection) | 3,662 fundus images, same 5-grade scale (cross-dataset validation) |
+| [APTOS 2019 (Kaggle)](https://www.kaggle.com/c/aptos2019-blindness-detection) | 3,662 fundus images across 5 DR grades (primary dataset) |
+| [EyePACS (Kaggle)](https://www.kaggle.com/c/diabetic-retinopathy-detection) | 88,702 fundus images, same 5-grade scale (larger benchmark reference) |
 
 ## Setup
 
@@ -167,26 +170,29 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Download EyePACS from Kaggle (requires API credentials):
+Download APTOS 2019 from Kaggle (requires API credentials):
 
 ```bash
-kaggle competitions download -c diabetic-retinopathy-detection -p data/raw/
-unzip data/raw/diabetic-retinopathy-detection.zip -d data/raw/
+mkdir -p data/raw
+kaggle competitions download -c aptos2019-blindness-detection -p data/raw/
+cd data/raw && unzip aptos2019-blindness-detection.zip
+rm -rf test_images/ test.csv sample_submission.csv aptos2019-blindness-detection.zip
+cd ../..
 ```
 
 Preprocess:
 
 ```bash
 python -m src.data.preprocessing \
-    --raw_dir data/raw/train \
+    --raw_dir data/raw/train_images \
     --output_dir data/processed \
-    --labels_csv data/raw/trainLabels.csv
+    --labels_csv data/raw/train.csv
 ```
 
 ## Usage
 
 ```bash
-# Fine-tune LoRA adapters
+# Fine-tune LoRA adapters (requires GPU - use Colab/Kaggle notebook)
 python -m src.training.lora_finetune --config configs/train_config.yaml
 
 # Find best guidance scale per grade
@@ -207,8 +213,8 @@ python -m src.app.gradio_app --checkpoint checkpoints/final --share
 
 ## Key design decisions
 
-**Why LoRA over full fine-tuning?** EyePACS per-grade subsets have 200-800
-images. Full fine-tuning of an 860M parameter UNet on this volume would
+**Why LoRA over full fine-tuning?** APTOS per-grade subsets range from 193 to
+1,805 images. Full fine-tuning of an 860M parameter UNet on this volume would
 catastrophically forget pretrained knowledge. LoRA adds 0.1% trainable
 parameters while preserving the model's generative priors.
 
@@ -245,7 +251,7 @@ directly measures clinical utility.
 - [x] Downstream EfficientNet-B0 classifier
 - [x] Augmentation ratio ablation study
 - [x] Gradio demo (generate, compare, results tabs)
-- [ ] LoRA training on Colab/Kaggle due to GPU requirement
+- [ ] LoRA training on Colab/Kaggle (needs GPU)
 - [ ] Bulk synthetic generation
 - [ ] Full ablation run with results
 - [ ] Hugging Face Spaces deployment

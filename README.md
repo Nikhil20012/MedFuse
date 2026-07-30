@@ -1,6 +1,6 @@
 <div align="center">
 
-# MedFuse
+# 👁️ MedFuse
 
 **Synthetic diabetic retinopathy fundus generation with LoRA-adapted diffusion models**
 
@@ -245,7 +245,7 @@ directly measures clinical utility.
 - [x] Downstream EfficientNet-B0 classifier
 - [x] Augmentation ratio ablation study
 - [x] Gradio demo (generate, compare, results tabs)
-- [ ] LoRA training on Colab/Kaggle (needs GPU)
+- [ ] LoRA training on Colab/Kaggle due to GPU requirement
 - [ ] Bulk synthetic generation
 - [ ] Full ablation run with results
 - [ ] Hugging Face Spaces deployment

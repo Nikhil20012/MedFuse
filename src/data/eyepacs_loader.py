@@ -1,6 +1,8 @@
 """
-PyTorch dataset for loading preprocessed EyePACS fundus images
+PyTorch dataset for loading preprocessed fundus images
 paired with their grade-conditioned text prompts.
+
+Works with both APTOS 2019 and EyePACS preprocessed data.
 """
 
 from pathlib import Path

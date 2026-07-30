@@ -1,9 +1,11 @@
 """
-Preprocessing pipeline for EyePACS fundus images.
+Preprocessing pipeline for retinal fundus images.
 
 Handles circle cropping (removes black borders around the fundus),
 resizing to 512x512, and basic quality filtering for images that
 are too dark or overexposed to be useful for training.
+
+Supports both APTOS 2019 and EyePACS datasets (auto-detected from CSV columns).
 """
 
 import os

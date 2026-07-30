@@ -1,12 +1,11 @@
 # MedFuse training configuration
 
 data:
-  dataset_name: "eyepacs"
-  # Path to the downloaded and processed EyePACS data
+  dataset_name: "aptos2019"
   data_dir: "data/processed"
   image_size: 512
   # Per-grade sample cap for fine-tuning (keeps GPU time reasonable)
-  max_samples_per_grade: 800
+  max_samples_per_grade: null
   val_split: 0.1
   num_workers: 4
 
